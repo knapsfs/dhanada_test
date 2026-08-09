@@ -5,7 +5,7 @@ import frappe
 from frappe.model.document import Document
 
 
-class SIFSchemeApproval(Document):
+class SIFSchemeModificationRequest(Document):
 	_DOCTYPE_NAME = "SIF Scheme Approval"
 
 	def on_submit(self):

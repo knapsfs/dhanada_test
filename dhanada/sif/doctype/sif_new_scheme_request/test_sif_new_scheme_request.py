@@ -13,9 +13,9 @@ IGNORE_TEST_RECORD_DEPENDENCIES = []  # eg. ["User"]
 
 
 
-class IntegrationTestSIFSchemeApproval(IntegrationTestCase):
+class IntegrationTestSIFNewSchemeRequest(IntegrationTestCase):
 	"""
-	Integration tests for SIFSchemeApproval.
+	Integration tests for SIFNewSchemeRequest.
 	Use this class for testing interactions between multiple components.
 	"""
 

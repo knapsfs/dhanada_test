@@ -335,7 +335,7 @@
  "modified": "2026-08-08 11:37:10.410060",
  "modified_by": "Administrator",
  "module": "SIF",
- "name": "SIF New Scheme Approval",
+ "name": "SIF New Scheme Request",
  "naming_rule": "Autoincrement",
  "owner": "Administrator",
  "permissions": [

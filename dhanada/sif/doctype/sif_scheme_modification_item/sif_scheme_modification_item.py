@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class SIFSchemeApprovalItem(Document):
+class SIFSchemeModificationItem(Document):
 	_DOCTYPE_NAME = "SIF Scheme Approval Item"

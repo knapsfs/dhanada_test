@@ -6,7 +6,7 @@ from frappe.model.document import Document
 import json
 
 
-class SIFNewSchemeApproval(Document):
+class SIFNewSchemeRequest(Document):
 	_DOCTYPE_NAME = "SIF New Scheme Approval"
 
 	def on_submit(self):
