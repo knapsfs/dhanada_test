@@ -64,6 +64,7 @@
    "columns": 2
   },
   {
+   "allow_on_submit": 1,
    "default": "0",
    "description": "Admin checks if this field should be updated",
    "fieldname": "apply_change",
