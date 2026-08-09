@@ -7,9 +7,16 @@ import json
 
 
 class SIFNewSchemeRequest(Document):
-	_DOCTYPE_NAME = "SIF New Scheme Approval"
+	_DOCTYPE_NAME = "SIF New Scheme Request"
 
 	def on_submit(self):
+		pass # Natively submitted (Pending Approval). Scheme generation deferred to on_update_after_submit.
+
+	def on_update_after_submit(self):
+		if self.workflow_state == "Approved" and not self.scheme:
+			self._generate_sif_scheme()
+
+	def _generate_sif_scheme(self):
 		# Generate the actual SIF Scheme
 		scheme_doc = frappe.new_doc("SIF Scheme")
 		
@@ -41,12 +48,12 @@ class SIFNewSchemeRequest(Document):
 def create_approval_from_ui(data):
 	"""
 	Safely intercepts a UI request to create a New Scheme 
-	and converts it into a SIF New Scheme Approval document.
+	and converts it into a SIF New Scheme Request document.
 	"""
 	if isinstance(data, str):
 		data = json.loads(data)
 		
-	approval_doc = frappe.new_doc("SIF New Scheme Approval")
+	approval_doc = frappe.new_doc("SIF New Scheme Request")
 	
 	# Set simple fields
 	for field in approval_doc.meta.fields:

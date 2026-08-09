@@ -61,12 +61,12 @@
    "label": "Scheme Name"
   },
   {
+   "depends_on": "eval:doc.docstatus == 1",
    "fieldname": "scheme",
    "fieldtype": "Link",
    "label": "Created Scheme",
    "options": "SIF Scheme",
-   "read_only": 1,
-   "depends_on": "eval:doc.docstatus == 1"
+   "read_only": 1
   },
   {
    "fieldname": "amc",
@@ -317,7 +317,7 @@
    "fieldtype": "Link",
    "label": "Amended From",
    "no_copy": 1,
-   "options": "SIF New Scheme Approval",
+   "options": "SIF New Scheme Request",
    "print_hide": 1,
    "read_only": 1,
    "search_index": 1
@@ -332,7 +332,7 @@
    "link_fieldname": "scheme"
   }
  ],
- "modified": "2026-08-08 11:37:10.410060",
+ "modified": "2026-08-09 20:16:44.262692",
  "modified_by": "Administrator",
  "module": "SIF",
  "name": "SIF New Scheme Request",
@@ -340,6 +340,7 @@
  "owner": "Administrator",
  "permissions": [
   {
+   "cancel": 1,
    "create": 1,
    "delete": 1,
    "email": 1,
@@ -350,7 +351,6 @@
    "role": "System Manager",
    "share": 1,
    "submit": 1,
-   "cancel": 1,
    "write": 1
   }
  ],
