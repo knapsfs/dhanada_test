@@ -10,7 +10,9 @@
   "apply_change",
   "field_name",
   "old_value",
+  "old_value_json",
   "new_value",
+  "new_value_json",
   "override_value"
  ],
  "fields": [
@@ -32,12 +34,26 @@
    "columns": 2
   },
   {
+   "description": "Internal machine-readable payload for old_value",
+   "fieldname": "old_value_json",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "Old Value JSON"
+  },
+  {
    "description": "Incoming value from AMFI",
    "fieldname": "new_value",
    "fieldtype": "Small Text",
    "in_list_view": 1,
    "label": "New Value",
    "columns": 2
+  },
+  {
+   "description": "Internal machine-readable payload for new_value",
+   "fieldname": "new_value_json",
+   "fieldtype": "Small Text",
+   "hidden": 1,
+   "label": "New Value JSON"
   },
   {
    "description": "Optional correction to new_value",

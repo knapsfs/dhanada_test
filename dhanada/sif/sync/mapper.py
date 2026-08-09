@@ -164,7 +164,7 @@ class DataMapper:
         portion_extract_pattern = re.compile(r'(?i)(\([^)]*portion\)|Debt\s+Portion|Equity\s+Portion|Arbitrage\s+Portion)')
         
         # Pattern to strip labels and titles from the front or within the name
-        label_pattern = re.compile(r'(?i)(Debt|Equity|Arbitrage)\s+Portion\s*[:\-]?\s*|\(for.*?portion\)|\bFM\s*\d+\s*[:\-]?\s*')
+        label_pattern = re.compile(r'(?i)(Debt|Equity|Arbitrage)\s+Portion\s*[:\-]?\s*|\(for.*?portion\)|\bFM\s*[-_]?\s*\d+\s*[:\-]?\s*|^\d+[\.\-\)]?\s+')
         title_pattern = re.compile(r'^(Mr\.|Ms\.|Mrs\.|Dr\.|Mr|Ms|Mrs|Dr)\s*', flags=re.IGNORECASE)
         
         for fm in raw_managers_list:
@@ -187,7 +187,7 @@ class DataMapper:
                     parsed_to_date = self._parse_date(match_to.group(1))
             
             # 2. Split raw name into individual managers
-            name_chunks = [c.strip() for c in re.split(r';|,|\band\b|&|\n', raw_name, flags=re.IGNORECASE) if c.strip()]
+            name_chunks = [c.strip() for c in re.split(r';|,|\band\b|&|\n|:', raw_name, flags=re.IGNORECASE) if c.strip()]
             
             for i, chunk in enumerate(name_chunks):
                 # Extract portion if present in this specific chunk
@@ -203,6 +203,7 @@ class DataMapper:
                 # Clean up labels and titles
                 clean_name = label_pattern.sub('', chunk).strip()
                 clean_name = title_pattern.sub('', clean_name).strip()
+                clean_name = re.sub(r'\s+', ' ', clean_name).strip()
                 
                 if not clean_name: 
                     continue
@@ -395,7 +396,11 @@ class DataMapper:
         unique_subs = {sub.subcategory_name: sub for sub in dataset.subcategories}
         dataset.subcategories = list(unique_subs.values())
         
-        unique_fms = {fm.manager_name: fm for fm in dataset.fund_managers}
+        unique_fms = {}
+        for fm in dataset.fund_managers:
+            norm = re.sub(r'[^a-z0-9]', '', str(fm.manager_name).lower())
+            if norm not in unique_fms:
+                unique_fms[norm] = fm
         dataset.fund_managers = list(unique_fms.values())
         
         unique_amcs = {amc.sif_name: amc for amc in dataset.amcs if amc.sif_name}

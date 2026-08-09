@@ -63,7 +63,9 @@ def compare_scheme(existing_doc, incoming_scheme: Scheme) -> list:
                 changes.append({
                     "field_name": "allocations",
                     "old_value": json.dumps(old_allocs, indent=2),
-                    "new_value": json.dumps(new_allocs, indent=2)
+                    "old_value_json": json.dumps(old_allocs),
+                    "new_value": json.dumps(new_allocs, indent=2),
+                    "new_value_json": json.dumps(new_allocs)
                 })
                 
         elif field == "managers":
@@ -80,16 +82,15 @@ def compare_scheme(existing_doc, incoming_scheme: Scheme) -> list:
             new_mgrs = []
             for m in incoming_scheme.managers:
                 # Resolve manager_name identical to how importer maps it
-                fm_doc = frappe.db.exists("SIF Fund Manager", {"manager_name": m.manager_name})
-                if not fm_doc:
-                    import re
-                    norm = re.sub(r'[^a-z0-9]', '', str(m.manager_name).lower())
-                    if norm:
-                        managers_in_db = frappe.db.get_all("SIF Fund Manager", fields=["name", "manager_name"])
-                        for db_m in managers_in_db:
-                            if re.sub(r'[^a-z0-9]', '', str(db_m.manager_name).lower()) == norm:
-                                fm_doc = db_m.name
-                                break
+                fm_doc = None
+                import re
+                norm = re.sub(r'[^a-z0-9]', '', str(m.manager_name).lower())
+                if norm:
+                    managers_in_db = frappe.db.get_all("SIF Fund Manager", fields=["name", "manager_name"], order_by="creation asc")
+                    for db_m in managers_in_db:
+                        if re.sub(r'[^a-z0-9]', '', str(db_m.manager_name).lower()) == norm:
+                            fm_doc = db_m.name
+                            break
                 
                 if fm_doc:
                     new_mgrs.append({
@@ -101,10 +102,41 @@ def compare_scheme(existing_doc, incoming_scheme: Scheme) -> list:
             new_mgrs.sort(key=lambda x: x["manager_name"])
             
             if old_mgrs != new_mgrs:
+                # Helper to format managers
+                def _format_managers(mgrs):
+                    if not mgrs:
+                        return "None"
+                    
+                    try:
+                        # Pre-fetch manager names
+                        names = {}
+                        for fm in frappe.db.get_all("SIF Fund Manager", fields=["name", "manager_name"]):
+                            names[str(fm.name)] = fm.manager_name
+                        
+                        from frappe.utils import formatdate
+                        
+                        lines = []
+                        for i, m in enumerate(mgrs, 1):
+                            name = names.get(str(m['manager_name']), m['manager_name'])
+                            line = f"{i}. {name}"
+                            parts = []
+                            if m.get('from_date'): parts.append(f"From: {formatdate(m['from_date'], 'dd-MM-yyyy')}")
+                            if m.get('to_date'): parts.append(f"To: {formatdate(m['to_date'], 'dd-MM-yyyy')}")
+                            if m.get('is_active') is not None:
+                                parts.append(f"Active: {'Yes' if m['is_active'] else 'No'}")
+                            if parts:
+                                line += " | " + " | ".join(parts)
+                            lines.append(line)
+                        return "\n".join(lines)
+                    except Exception:
+                        return json.dumps(mgrs, indent=2)
+                        
                 changes.append({
                     "field_name": "managers",
-                    "old_value": json.dumps(old_mgrs, indent=2),
-                    "new_value": json.dumps(new_mgrs, indent=2)
+                    "old_value": _format_managers(old_mgrs),
+                    "old_value_json": json.dumps(old_mgrs),
+                    "new_value": _format_managers(new_mgrs),
+                    "new_value_json": json.dumps(new_mgrs)
                 })
                 
         else:

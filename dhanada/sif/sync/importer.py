@@ -99,18 +99,20 @@ class DataImporter:
 
     def _get_existing_fund_manager(self, manager_name):
         import re
-        exists = frappe.db.exists("SIF Fund Manager", {"manager_name": manager_name})
-        if exists: return exists
         
-        # Check normalized match
+        if not hasattr(self, "_manager_cache"):
+            self._manager_cache = {}
+            managers = frappe.db.get_all("SIF Fund Manager", fields=["name", "manager_name"], order_by="creation asc")
+            for m in managers:
+                norm = re.sub(r'[^a-z0-9]', '', str(m.manager_name).lower())
+                if norm and norm not in self._manager_cache:
+                    self._manager_cache[norm] = m.name
+
         norm = re.sub(r'[^a-z0-9]', '', str(manager_name).lower())
-        if not norm: return None
-        
-        managers = frappe.db.get_all("SIF Fund Manager", fields=["name", "manager_name"])
-        for m in managers:
-            if re.sub(r'[^a-z0-9]', '', str(m.manager_name).lower()) == norm:
-                return m.name
-        return None
+        if not norm: 
+            return None
+            
+        return self._manager_cache.get(norm)
 
     def _upsert_fund_manager(self, fm):
         try:
@@ -124,6 +126,10 @@ class DataImporter:
                         "manager_name": fm.manager_name
                     })
                     doc.insert(ignore_permissions=True)
+                    import re
+                    norm = re.sub(r'[^a-z0-9]', '', str(fm.manager_name).lower())
+                    if norm:
+                        self._manager_cache[norm] = doc.name
                 self.stats["created"] += 1
         except Exception as e:
             self.stats["errors"] += 1
@@ -174,14 +180,14 @@ class DataImporter:
                 else:
                     # 2b. Auto-Update (No editable fields changed)
                     if not self.dry_run:
-                        self._map_scheme_fields(doc, scheme, amc_doc)
+                        self._map_scheme_fields(doc, scheme, amc_doc, update_child_tables=False)
                         doc.save(ignore_permissions=True)
                     self.stats["updated"] += 1
             else:
                 if not self.dry_run:
-                    pending = frappe.db.exists("SIF New Scheme Approval", {"sebi_code": scheme.sebi_code, "docstatus": 0})
+                    pending = frappe.db.exists("SIF New Scheme Request", {"sebi_code": scheme.sebi_code, "docstatus": 0})
                     if not pending:
-                        doc = frappe.new_doc("SIF New Scheme Approval")
+                        doc = frappe.new_doc("SIF New Scheme Request")
                         doc.sebi_code = scheme.sebi_code
                         self._map_scheme_fields(doc, scheme, amc_doc)
                         doc.insert(ignore_permissions=True)
@@ -198,7 +204,7 @@ class DataImporter:
             self.stats["errors"] += 1
             log_error(f"Failed to upsert Scheme {scheme.sebi_code}: {e}", exc_info=True)
 
-    def _map_scheme_fields(self, doc, scheme, amc_doc):
+    def _map_scheme_fields(self, doc, scheme, amc_doc, update_child_tables=True):
         doc.scheme_name = scheme.scheme_name
         if amc_doc:
             doc.amc = amc_doc
@@ -231,26 +237,27 @@ class DataImporter:
         doc.factsheet_url = scheme.factsheet_url
         doc.monthly_portfolio_disclosure_url = scheme.monthly_portfolio_disclosure_url
         
-        doc.set("allocations", [])
-        for alloc in scheme.allocations:
-            doc.append("allocations", {
-                "allocation_type": alloc.allocation_type,
-                "minimum_allocation_percentage": alloc.minimum_allocation_percentage,
-                "maximum_allocation_percentage": alloc.maximum_allocation_percentage
-            })
-
-        doc.set("managers", [])
-        for mgr in scheme.managers:
-            fm_doc = self._get_existing_fund_manager(mgr.manager_name)
-            if fm_doc:
-                doc.append("managers", {
-                    "manager_name": fm_doc,
-                    "from": mgr.from_date,
-                    "to": mgr.to_date,
-                    "is_active": int(mgr.is_active)
+        if update_child_tables:
+            doc.set("allocations", [])
+            for alloc in scheme.allocations:
+                doc.append("allocations", {
+                    "allocation_type": alloc.allocation_type,
+                    "minimum_allocation_percentage": alloc.minimum_allocation_percentage,
+                    "maximum_allocation_percentage": alloc.maximum_allocation_percentage
                 })
-            else:
-                log_warning(f"Fund manager {mgr.manager_name} not found, skipping for scheme {scheme.sebi_code}")
+
+            doc.set("managers", [])
+            for mgr in scheme.managers:
+                fm_doc = self._get_existing_fund_manager(mgr.manager_name)
+                if fm_doc:
+                    doc.append("managers", {
+                        "manager_name": fm_doc,
+                        "from": mgr.from_date,
+                        "to": mgr.to_date,
+                        "is_active": int(mgr.is_active)
+                    })
+                else:
+                    log_warning(f"Fund manager {mgr.manager_name} not found, skipping for scheme {scheme.sebi_code}")
 
     def _upsert_scheme_plan(self, plan):
         try:

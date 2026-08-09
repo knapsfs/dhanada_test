@@ -10,7 +10,7 @@ def find_pending_approval(scheme_doc):
     scheme_name = scheme_doc.name if hasattr(scheme_doc, 'name') else scheme_doc
     
     pending_approvals = frappe.get_all(
-        "SIF Scheme Approval",
+        "SIF Scheme Modification Request",
         filters={
             "scheme": scheme_name,
             "docstatus": 0
@@ -20,7 +20,7 @@ def find_pending_approval(scheme_doc):
     )
     
     if pending_approvals:
-        return frappe.get_doc("SIF Scheme Approval", pending_approvals[0].name)
+        return frappe.get_doc("SIF Scheme Modification Request", pending_approvals[0].name)
     return None
 
 def is_same_change_set(existing_approval, changes):
@@ -74,14 +74,16 @@ def create_approval_request(existing_doc, changes):
     # Create new approval request (only if no identical pending approval exists)
     scheme_name = existing_doc.name if hasattr(existing_doc, 'name') else existing_doc
     
-    approval_doc = frappe.new_doc("SIF Scheme Approval")
+    approval_doc = frappe.new_doc("SIF Scheme Modification Request")
     approval_doc.scheme = scheme_name
     
     for change in changes:
         approval_doc.append("changed_fields", {
             "field_name": change.get("field_name"),
             "old_value": change.get("old_value"),
+            "old_value_json": change.get("old_value_json"),
             "new_value": change.get("new_value"),
+            "new_value_json": change.get("new_value_json"),
             "apply_change": 0
         })
         
@@ -139,6 +141,12 @@ def process_approval(approval_doc):
     for item in approval_doc.get("changed_fields", []):
         if item.apply_change:
             raw_value = item.override_value if getattr(item, "override_value", None) else item.new_value
+            
+            # Use machine-readable JSON if available and no override was provided
+            if not getattr(item, "override_value", None) and item.field_name in ["managers", "allocations"]:
+                if getattr(item, "new_value_json", None):
+                    raw_value = item.new_value_json
+                    
             _write_field_to_scheme(scheme_doc, item.field_name, raw_value)
 
     scheme_doc.flags.ignore_version = True
@@ -158,6 +166,8 @@ def revert_approval(approval_doc):
         if item.apply_change:
             # Revert to the old value
             raw_value = item.old_value
+            if item.field_name in ["managers", "allocations"] and getattr(item, "old_value_json", None):
+                raw_value = item.old_value_json
             _write_field_to_scheme(scheme_doc, item.field_name, raw_value)
 
     scheme_doc.flags.ignore_version = True
