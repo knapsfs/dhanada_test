@@ -5,6 +5,15 @@ app_description = "Investment Platform for KNAPS "
 app_email = "piyush.sawhney@knaps.in"
 app_license = "mit"
 
+
+add_to_apps_screen = [
+    {
+        "name": "sif",
+        "logo": "/assets/dhanada/images/SIF-Assets-Favicon.png",
+        "title": "SIF",
+        "route": "/desk/sif",
+    }
+]
 # Apps
 # ------------------
 
@@ -91,6 +100,11 @@ after_migrate = [
 	"dhanada.utils.patch_crm_layout.patch_layout",
 	"dhanada.setup.bootstrap.after_migrate"
 ]
+
+
+
+get_desktop_icons = "dhanada.config.desktop.get_data"
+
 
 # Uninstallation
 # ------------
@@ -257,3 +271,5 @@ fixtures = [
 	{"dt": "Custom Field", "filters": [["dt", "=", "CRM Lead"]]},
 	{"dt": "CRM Form Script", "filters": [["name", "=", "CRM Lead UI Fix"]]}
 ]
+
+
