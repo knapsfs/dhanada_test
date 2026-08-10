@@ -9,7 +9,7 @@ USER frappe
 # Pre-install the CRM app inside the image.
 # Dhanada app will be mounted over during local development, but in a true prod build,
 # it could also be fetched here.
-RUN bench get-app crm
+# RUN bench get-app crm
 
 # Provide an entrypoint script to handle startup tasks
 COPY docker/frappe/entrypoint.sh /usr/local/bin/entrypoint.sh
