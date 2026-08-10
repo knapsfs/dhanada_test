@@ -1,7 +1,7 @@
 {
  "app": "dhanada",
  "charts": [],
- "content": "[]",
+ "content": "[{\"id\":\"dBzy2lJqNA\",\"type\":\"header\",\"data\":{\"text\":\"<span class=\\\"h4\\\">My SIF Workspace</span>\",\"col\":12}},{\"id\":\"3Rir8iKZVB\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"SIF Scheme\",\"col\":3}},{\"id\":\"5jv1ACqK7U\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Investment Strategy Subcategory\",\"col\":3}},{\"id\":\"rwIv-j69qr\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Fund Managers\",\"col\":3}},{\"id\":\"3Y4V3yh-5u\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Scheme Plan Performance\",\"col\":3}},{\"id\":\"8iIj6B6UZf\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Scheme Plan\",\"col\":3}},{\"id\":\"2ecDOgaLzK\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Asset Management Company\",\"col\":3}},{\"id\":\"3QvmgYekJl\",\"type\":\"shortcut\",\"data\":{\"shortcut_name\":\"Scheme Modification Request\",\"col\":3}}]",
  "creation": "2026-08-10 11:35:29.794474",
  "custom_blocks": [],
  "docstatus": 0,
@@ -15,7 +15,7 @@
  "label": "SIF",
  "link_type": "DocType",
  "links": [],
- "modified": "2026-08-10 11:56:09.147519",
+ "modified": "2026-08-10 12:14:10.254116",
  "modified_by": "Administrator",
  "module": "SIF",
  "name": "SIF",
@@ -25,7 +25,64 @@
  "quick_lists": [],
  "roles": [],
  "sequence_id": 11.0,
- "shortcuts": [],
+ "shortcuts": [
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "SIF Scheme",
+   "link_to": "SIF Scheme",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Investment Strategy Subcategory",
+   "link_to": "SIF Investment Strategy Subcategory",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Fund Managers",
+   "link_to": "SIF Fund Manager",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Scheme Plan Performance",
+   "link_to": "SIF Scheme Plan Performance",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Scheme Plan",
+   "link_to": "SIF Scheme Plan",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Asset Management Company",
+   "link_to": "SIF Asset Management Company",
+   "stats_filter": "[]",
+   "type": "DocType"
+  },
+  {
+   "color": "Grey",
+   "doc_view": "List",
+   "label": "Scheme Modification Request",
+   "link_to": "SIF Scheme Modification Request",
+   "stats_filter": "[]",
+   "type": "DocType"
+  }
+ ],
  "sidebar_items": [
   {
    "child": 0,
@@ -120,6 +177,20 @@
    "keep_closed": 0,
    "label": "Scheme Plan Performance",
    "link_to": "SIF Scheme Plan Performance",
+   "link_type": "DocType",
+   "open_in_new_tab": 1,
+   "show_arrow": 0,
+   "type": "Link"
+  },
+  {
+   "child": 0,
+   "collapsible": 1,
+   "default_workspace": 0,
+   "icon": "clipboard-pen",
+   "indent": 0,
+   "keep_closed": 0,
+   "label": "New Scheme Request",
+   "link_to": "SIF New Scheme Request",
    "link_type": "DocType",
    "open_in_new_tab": 1,
    "show_arrow": 0,
