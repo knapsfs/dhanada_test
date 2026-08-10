@@ -253,7 +253,7 @@ scheduler_events = {
 fixtures = [
 	"SIF Asset Management Company",
 	"SIF Fund Manager",
-	"SIF Investment Stategy Subcategory",
+	"SIF Investment Strategy Subcategory",
 	{"dt": "Custom Field", "filters": [["dt", "=", "CRM Lead"]]},
 	{"dt": "CRM Form Script", "filters": [["name", "=", "CRM Lead UI Fix"]]}
 ]

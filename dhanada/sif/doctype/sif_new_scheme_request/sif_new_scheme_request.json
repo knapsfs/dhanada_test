@@ -161,7 +161,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Scheme Subcategory",
-   "options": "SIF Investment Stategy Subcategory",
+   "options": "SIF Investment Strategy Subcategory",
    "reqd": 1
   },
   {
@@ -332,7 +332,7 @@
    "link_fieldname": "scheme"
   }
  ],
- "modified": "2026-08-09 20:16:44.262692",
+ "modified": "2026-08-10 11:57:05.341614",
  "modified_by": "Administrator",
  "module": "SIF",
  "name": "SIF New Scheme Request",

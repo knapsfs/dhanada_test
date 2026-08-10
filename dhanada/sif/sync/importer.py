@@ -82,13 +82,13 @@ class DataImporter:
 
     def _upsert_subcategory(self, sub):
         try:
-            exists = frappe.db.exists("SIF Investment Stategy Subcategory", sub.subcategory_name)
+            exists = frappe.db.exists("SIF Investment Strategy Subcategory", sub.subcategory_name)
             if exists:
                 self.stats["skipped"] += 1 # Nothing to update
             else:
                 if not self.dry_run:
                     doc = frappe.get_doc({
-                        "doctype": "SIF Investment Stategy Subcategory",
+                        "doctype": "SIF Investment Strategy Subcategory",
                         "subcategory_name": sub.subcategory_name
                     })
                     doc.insert(ignore_permissions=True)

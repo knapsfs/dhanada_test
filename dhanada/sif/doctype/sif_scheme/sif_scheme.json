@@ -48,7 +48,9 @@
   "registrar",
   "custodian",
   "auditor",
-  "minimum_subscription_text"
+  "minimum_subscription_text",
+  "riskometer_at_launch",
+  "potential_risk_class"
  ],
  "fields": [
   {
@@ -84,7 +86,7 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "label": "Scheme Subcategory",
-   "options": "SIF Investment Stategy Subcategory",
+   "options": "SIF Investment Strategy Subcategory",
    "reqd": 1
   },
   {
@@ -309,7 +311,7 @@
    "link_fieldname": "scheme"
   }
  ],
- "modified": "2026-07-22 17:00:00.000000",
+ "modified": "2026-08-10 11:57:05.578174",
  "modified_by": "Administrator",
  "module": "SIF",
  "name": "SIF Scheme",

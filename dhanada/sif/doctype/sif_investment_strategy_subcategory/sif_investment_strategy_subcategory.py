@@ -5,5 +5,5 @@
 from frappe.model.document import Document
 
 
-class SIFInvestmentStategySubcategory(Document):
+class SIFInvestmentStrategySubcategory(Document):
 	pass
