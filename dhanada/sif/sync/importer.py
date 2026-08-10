@@ -190,6 +190,7 @@ class DataImporter:
                         doc = frappe.new_doc("SIF New Scheme Request")
                         doc.sebi_code = scheme.sebi_code
                         self._map_scheme_fields(doc, scheme, amc_doc)
+                        doc.flags.skip_auto_submit = True
                         doc.insert(ignore_permissions=True)
                         self.stats["approvals_requested"] += 1
                     else:

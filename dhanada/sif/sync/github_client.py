@@ -34,6 +34,14 @@ class GitHubClient:
         if self.token:
             headers["Authorization"] = f"token {self.token}"
         self.session.headers.update(headers)
+
+        # Dedicated session for downloading raw files to prevent 
+        # API headers from interfering and to reuse connections.
+        self.dl_session = requests.Session()
+        self.dl_session.mount("http://", adapter)
+        self.dl_session.mount("https://", adapter)
+        if self.token:
+            self.dl_session.headers.update({"Authorization": f"token {self.token}"})
         
         if self.repo_url:
             self._owner, self._repo = self._parse_repo_url(self.repo_url)
@@ -60,7 +68,8 @@ class GitHubClient:
         """Lists files in a GitHub directory using Contents API."""
         url = self._get_api_url(path)
         try:
-            response = self.session.get(url, timeout=30)
+            # Using tuple timeout: 5s connect, 30s read. Prevents 2-minute IPv6 deadlocks.
+            response = self.session.get(url, timeout=(5.0, 30.0))
             response.raise_for_status()
             data = response.json()
             if isinstance(data, list):
@@ -84,12 +93,9 @@ class GitHubClient:
     def _download_file(self, download_url: str) -> bytes:
         """Downloads a raw file from GitHub."""
         try:
-            # Using a temporary session for downloading raw files to prevent 
-            # global GitHub API headers from interfering with the download host.
-            dl_session = requests.Session()
-            if self.token:
-                dl_session.headers.update({"Authorization": f"token {self.token}"})
-            response = dl_session.get(download_url, timeout=30)
+            # Reusing dl_session with connection pooling.
+            # Tuple timeout (5.0, 30.0) ensures dead IPv6 resolves fail quickly.
+            response = self.dl_session.get(download_url, timeout=(5.0, 30.0))
             response.raise_for_status()
             return response.content
         except requests.exceptions.RequestException as e:
@@ -200,7 +206,7 @@ class GitHubClient:
             headers = {"Accept": "application/vnd.github.v3.raw"}
             if self.token:
                 headers["Authorization"] = f"token {self.token}"
-            response = requests.get(url, headers=headers, timeout=30)
+            response = requests.get(url, headers=headers, timeout=(5.0, 30.0))
             response.raise_for_status()
             return response.json()
         except requests.exceptions.HTTPError as e:

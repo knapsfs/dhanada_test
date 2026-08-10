@@ -64,20 +64,27 @@ def sync_scheme_details(dry_run: bool = False):
         client = GitHubClient()
         
         # 1. Fetch data
+        frappe.logger("sif_sync").info("Starting to fetch scheme details from GitHub...")
         scheme_data = client.fetch_scheme_details()
+        frappe.logger("sif_sync").info(f"Finished fetching scheme details. Received {len(scheme_data)} records.")
+        
         
         raw_data = {
             "scheme_details": scheme_data
         }
         
         # 2. Map data
+        frappe.logger("sif_sync").info("Starting data mapping...")
         mapper = DataMapper()
         dataset = mapper.map_dataset(raw_data)
         validation_errors = mapper.validator.errors
+        frappe.logger("sif_sync").info(f"Finished mapping data. Found {len(validation_errors)} validation errors.")
         
         # 3. Import data
+        frappe.logger("sif_sync").info(f"Starting database import (dry_run={dry_run})...")
         importer = DataImporter(dry_run=dry_run)
         importer.import_dataset(dataset)
+        frappe.logger("sif_sync").info("Finished database import.")
         
         duration = time.time() - start_time
         log_sync_completed(

@@ -87,6 +87,7 @@ def create_approval_request(existing_doc, changes):
             "apply_change": 0
         })
         
+    approval_doc.flags.skip_auto_submit = True
     approval_doc.insert(ignore_permissions=True)
     return approval_doc
 
