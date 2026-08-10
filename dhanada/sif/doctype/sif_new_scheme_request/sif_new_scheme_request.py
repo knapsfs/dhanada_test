@@ -10,11 +10,44 @@ class SIFNewSchemeRequest(Document):
 	_DOCTYPE_NAME = "SIF New Scheme Request"
 
 	def on_submit(self):
-		pass # Natively submitted (Pending Approval). Scheme generation deferred to on_update_after_submit.
+		pass
 
-	def on_update_after_submit(self):
-		if self.workflow_state == "Approved" and not self.scheme:
-			self._generate_sif_scheme()
+	def on_update(self):
+		if self.docstatus == 0 and not getattr(self, "_in_auto_submit", False):
+			self._in_auto_submit = True
+			
+			from frappe.model.workflow import apply_workflow
+			apply_workflow(self, "Submit for Approval")
+			
+			self._determine_and_execute_outcome()
+
+	def _determine_and_execute_outcome(self):
+		completion_fields = ["scheme_name", "sebi_code", "allocations", "managers"]
+		filled_count = 0
+
+		for field in completion_fields:
+			val = self.get(field)
+			if isinstance(val, list):
+				if len(val) > 0:
+					filled_count += 1
+			elif val:
+				filled_count += 1
+
+		if filled_count == 0:
+			outcome = "Cancelled"
+		elif filled_count == len(completion_fields):
+			outcome = "Approved"
+		else:
+			outcome = "Partially Approved"
+
+		self.db_set("workflow_state", outcome)
+		self.workflow_state = outcome
+
+		if outcome == "Approved":
+			if not self.scheme:
+				self._generate_sif_scheme()
+		elif outcome == "Cancelled":
+			self.cancel()
 
 	def _generate_sif_scheme(self):
 		# Generate the actual SIF Scheme

@@ -96,30 +96,5 @@ frappe.ui.form.on("SIF Scheme Modification Request", {
 		}
 
 		frm.refresh_field("changed_fields");
-	},
-
-	before_workflow_action: async (frm) => {
-		if (!frm.doc.changed_fields || frm.doc.changed_fields.length === 0) return;
-
-		let action = frm.selected_workflow_action;
-		let total_rows = frm.doc.changed_fields.length;
-		let checked_rows = frm.doc.changed_fields.filter(row => row.apply_change).length;
-
-		if (action === "Approve") {
-			if (checked_rows !== total_rows) {
-				frappe.throw(__('Cannot Approve: All modifications must be selected. Please either select all changes or use Partially Approve.'));
-			}
-		} else if (action === "Partially Approve") {
-			if (checked_rows === 0) {
-				frappe.throw(__('Cannot Partially Approve: At least one modification row must be checked. To reject all changes, use Cancel.'));
-			}
-			if (checked_rows === total_rows) {
-				frappe.throw(__('Cannot Partially Approve: You cannot check all rows. Use Approve instead.'));
-			}
-		} else if (action === "Cancel") {
-			if (checked_rows > 0) {
-				frappe.throw(__('Cannot Cancel: One or more modifications are selected. Please either Approve/Partially Approve or uncheck all modifications before cancelling.'));
-			}
-		}
 	}
 });
