@@ -10,20 +10,10 @@ class SIFNewSchemeRequest(Document):
 	_DOCTYPE_NAME = "SIF New Scheme Request"
 
 	def on_submit(self):
-		pass
+		self._determine_and_execute_outcome()
 
 	def on_update(self):
-		if self.docstatus == 0:
-			if getattr(self.flags, "skip_auto_submit", False):
-				frappe.logger("sif_sync").info(f"[SYNC CREATE] Draft created for {self.name} - auto-submit skipped")
-			elif not getattr(self, "_in_auto_submit", False):
-				frappe.logger("sif_sync").info(f"[ADMIN SAVE] Draft detected for {self.name} - starting auto-submit")
-				self._in_auto_submit = True
-				
-				from frappe.model.workflow import apply_workflow
-				apply_workflow(self, "Submit for Approval")
-				
-				self._determine_and_execute_outcome()
+		pass
 
 	def _determine_and_execute_outcome(self):
 		completion_fields = ["scheme_name", "sebi_code", "allocations", "managers"]
@@ -49,7 +39,7 @@ class SIFNewSchemeRequest(Document):
 		self.db_set("workflow_state", outcome)
 		self.workflow_state = outcome
 
-		if outcome == "Approved":
+		if outcome in ["Approved", "Partially Approved"]:
 			if not self.scheme:
 				self._generate_sif_scheme()
 		elif outcome == "Cancelled":

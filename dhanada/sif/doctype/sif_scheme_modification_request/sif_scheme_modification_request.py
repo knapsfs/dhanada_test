@@ -15,20 +15,10 @@ class SIFSchemeModificationRequest(Document):
 		pass
 
 	def on_submit(self):
-		pass
+		self._determine_and_execute_outcome()
 
 	def on_update(self):
-		if self.docstatus == 0:
-			if getattr(self.flags, "skip_auto_submit", False):
-				frappe.logger("sif_sync").info(f"[SYNC CREATE] Draft created for {self.name} - auto-submit skipped")
-			elif not getattr(self, "_in_auto_submit", False):
-				frappe.logger("sif_sync").info(f"[ADMIN SAVE] Draft detected for {self.name} - starting auto-submit")
-				self._in_auto_submit = True
-				
-				from frappe.model.workflow import apply_workflow
-				apply_workflow(self, "Submit for Approval")
-				
-				self._determine_and_execute_outcome()
+		pass
 
 	def _determine_and_execute_outcome(self):
 		total_rows = len(self.get("changed_fields", []))

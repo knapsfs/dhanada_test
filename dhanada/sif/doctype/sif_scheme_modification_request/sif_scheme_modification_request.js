@@ -67,6 +67,41 @@ frappe.ui.form.on("SIF Scheme Modification Request", {
 	},
 
 	refresh(frm) {
+		frm.page.clear_actions();
+		frm.page.clear_menu();
+
+		if (frm.doc.docstatus === 0) {
+			frm.page.set_secondary_action("Save", () => frm.save());
+			
+			frm.page.set_primary_action("Submit", () => {
+				if (frm._is_submitting) return;
+				frm._is_submitting = true;
+				
+				const execute_submit = () => {
+					frappe.xcall("frappe.model.workflow.apply_workflow", {
+						doc: frm.doc,
+						action: "Submit for Approval"
+					}).then(() => {
+						frm.reload_doc();
+					}).catch((e) => {
+						frappe.msgprint({ title: __('Submission Failed'), indicator: 'red', message: e.message || e.exc || e });
+					}).finally(() => {
+						frm._is_submitting = false;
+					});
+				};
+
+				if (frm.is_new() || frm.is_dirty()) {
+					frm.save('Save', () => {
+						execute_submit();
+					}, () => {
+						frm._is_submitting = false;
+					});
+				} else {
+					execute_submit();
+				}
+			});
+		}
+
 		if (frm.doc.__onload && frm.doc.__onload.editable_fields) {
 			frm.custom_editable_fields = frm.doc.__onload.editable_fields;
 		}
