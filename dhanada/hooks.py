@@ -269,6 +269,7 @@ fixtures = [
         "SIF Fund Manager",
         "SIF Investment Strategy Subcategory",
         "Workflow",
+		"Workflow State",
         {"dt": "Custom Field", "filters": [["dt", "=", "CRM Lead"]]},
         {"dt": "CRM Form Script", "filters": [["name", "=", "CRM Lead UI Fix"]]}
 ]
