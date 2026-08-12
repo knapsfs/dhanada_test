@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import '../assets/style.css';
 import chatbotIconUrl from '../assets/chatbot-icon.svg';
+import { Chatbot } from '../logic/chatbot.js';
+
+const chatbotInstance = new Chatbot();
 
 const STORAGE_KEYS = {
   sessionId: 'dhanada_session_id',
@@ -72,17 +75,9 @@ export default function ChatbotWidget() {
   }, [messages, isTyping, suggestions]);
 
   useEffect(() => {
-    // Check health
-    fetch('/api/health')
-      .then((res) => {
-        if (!res.ok) throw new Error('Not ok');
-        setHealthOk(true);
-        setHealthStatus('Online');
-      })
-      .catch(() => {
-        setHealthOk(false);
-        setHealthStatus('Offline');
-      });
+    // Local chatbot is always online
+    setHealthOk(true);
+    setHealthStatus('Online');
   }, []);
 
   const pushMessage = (role, text, quickReplies = []) => {
@@ -116,17 +111,7 @@ export default function ChatbotWidget() {
     setIsTyping(true);
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, message: text }),
-      });
-
-      if (!response.ok) {
-        throw new Error('API request failed');
-      }
-
-      const data = await response.json();
+      const data = await chatbotInstance.processMessage(sessionId, text);
       pushMessage('bot', data.reply, data.quickReplies);
       updateStateAndSuggestions(data.state, data.quickReplies);
     } catch (error) {

@@ -1,49 +1,30 @@
-'use strict';
+import * as knowledgeService from './knowledgeService.js';
+import * as leadManager from './leadManager.js';
 
-const knowledgeService = require('./knowledgeService');
-const leadManager = require('./leadManager');
-const { GoogleGenAI } = require('@google/genai');
-
+// Gemini client initialization is entirely handled server-side now.
 let aiClient = null;
-try {
-  if (process.env.GEMINI_API_KEY) {
-    aiClient = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-  }
-} catch (error) {
-  console.warn("Failed to initialize Gemini Client:", error);
-}
 
-async function generateContentWithFallback(aiClient, params, timeoutMs = 10000) {
-  const models = [
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-3.1-flash-lite'
-  ];
+async function generateContentWithFallback(params) {
+  const response = await fetch('/api/method/dhanada.api.chatbot_response', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      conversation_history: params.contents,
+      system_instruction: params.systemInstruction
+    })
+  });
 
-  let lastError = null;
-
-  for (let i = 0; i < models.length; i++) {
-    const model = models[i];
-    console.log(`Trying: ${model}`);
-
-    try {
-      params.model = model;
-      const apiCall = aiClient.models.generateContent(params);
-      const requestTimeout = new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('timeout')), timeoutMs)
-      );
-
-      const response = await Promise.race([apiCall, requestTimeout]);
-      console.log(`Success: ${model}`);
-      return response;
-    } catch (e) {
-      const reason = e.message || e.toString();
-      console.log(`Failed: ${model} - ${reason}`);
-      lastError = e;
-    }
+  if (!response.ok) {
+    throw new Error('Failed to reach Frappe API');
   }
 
-  throw new Error("I'm unable to fetch that information right now.");
+  const data = await response.json();
+
+  if (data.message && data.message.success) {
+    return { text: data.message.message };
+  } else {
+    throw new Error(data.message?.message || "Gemini processing failed on server");
+  }
 }
 
 const LEAD_STEPS = {
@@ -186,7 +167,7 @@ function getQuickReplies(state) {
   if (state.leadStep === LEAD_STEPS.PENDING_OFFER) {
     return ['✅ Yes', '❌ Not now'];
   }
-  
+
   if (state.leadStep === LEAD_STEPS.CHOOSE_SHARE) {
     return ['📱 Mobile Number', '✉️ Email Address', '📱+✉️ Both'];
   }
@@ -253,7 +234,7 @@ class SessionStore {
   }
 }
 
-class Chatbot {
+export class Chatbot {
   constructor({ sessionStore = new SessionStore() } = {}) {
     this.sessionStore = sessionStore;
     this.sessionQueue = new Map();
@@ -339,7 +320,7 @@ class Chatbot {
         const isInterruption = this.isLeadInterruption(state, cleanMessage, intent, explicitEntity);
         if (isInterruption) {
           reply = await this.handleIntent(state, cleanMessage);
-          
+
           state.leadInterruptionTurns = (state.leadInterruptionTurns || 0) + 1;
           if (state.leadInterruptionTurns === 1 || state.leadInterruptionTurns % 3 === 0) {
             reply += '\n\n' + this.getLeadReminder(state);
@@ -516,83 +497,83 @@ class Chatbot {
 
       case 'comparison':
         state.currentTopic = 'comparison';
-        return this.answerAndMaybeOffer(state, this.handleComparison(message), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleComparison(message));
 
       case 'nav':
         state.currentTopic = 'nav';
-        return this.answerAndMaybeOffer(state, this.handleNAV(message), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleNAV(message));
 
       case 'performance':
         state.currentTopic = 'performance';
-        return this.answerAndMaybeOffer(state, this.handlePerformance(message), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handlePerformance(message));
 
       case 'marketNews':
         state.currentTopic = 'marketNews';
-        return this.answerAndMaybeOffer(state, this.handleMarketNews(), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleMarketNews());
 
       case 'fundDetails':
         state.currentTopic = 'fundDetails';
-        return this.answerAndMaybeOffer(state, this.handleFundDetails(message), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleFundDetails(message));
 
       case 'amc':
         state.currentTopic = 'amc';
-        return this.answerAndMaybeOffer(state, this.handleAMC(message), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleAMC(message));
 
       case 'risk':
         state.currentTopic = 'risk';
-        return this.answerAndMaybeOffer(state, this.handleRisk(message), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleRisk(message));
 
       case 'category':
         state.currentTopic = 'category';
-        return this.answerAndMaybeOffer(state, this.handleCategory(message), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleCategory(message));
 
       case 'sip':
         state.currentTopic = 'sip';
-        return this.answerAndMaybeOffer(state, this.handleGuide('sip'), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleGuide('sip'));
 
       case 'lumpsum':
         state.currentTopic = 'lumpsum';
-        return this.answerAndMaybeOffer(state, this.handleGuide('lumpsum'), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleGuide('lumpsum'));
 
       case 'taxation':
         state.currentTopic = 'taxation';
-        return this.answerAndMaybeOffer(state, this.handleGuide('taxation'), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleGuide('taxation'));
 
       case 'assetAllocation':
         state.currentTopic = 'assetAllocation';
-        return this.answerAndMaybeOffer(state, this.handleGuide('assetAllocation'), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleGuide('assetAllocation'));
 
       case 'portfolio':
         state.currentTopic = 'portfolio';
-        return this.answerAndMaybeOffer(state, this.handleGuide('portfolio'), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleGuide('portfolio'));
 
       case 'exitLoad':
         state.currentTopic = 'exitLoad';
-        return this.answerAndMaybeOffer(state, this.handleGuide('exitLoad'), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleGuide('exitLoad'));
 
       case 'expenseRatio':
         state.currentTopic = 'expenseRatio';
-        return this.answerAndMaybeOffer(state, this.handleGuide('expenseRatio'), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleGuide('expenseRatio'));
 
       case 'kyc':
         state.currentTopic = 'kyc';
-        return this.answerAndMaybeOffer(state, this.handleGuide('kyc'), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleGuide('kyc'));
 
       case 'distributors':
         state.currentTopic = 'distributors';
-        return this.answerAndMaybeOffer(state, this.handleDistributors(message), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleDistributors(message));
 
       case 'dhanadaServices':
         state.currentTopic = 'dhanadaServices';
-        return this.answerAndMaybeOffer(state, this.handleServices(), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleServices());
 
       case 'sif':
         state.currentTopic = 'sif';
-        return this.answerAndMaybeOffer(state, this.handleGuide('sif'), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleGuide('sif'));
 
       case 'mutualFunds':
         state.currentTopic = 'mutualFunds';
-        return this.answerAndMaybeOffer(state, this.handleGuide('mutualFunds'), true);
+        return this.answerAndMaybeOffer(state, message, intent, this.handleGuide('mutualFunds'));
 
       case 'advisorRequest':
         state.currentTopic = 'dhanadaServices';
@@ -614,16 +595,12 @@ class Chatbot {
     }
   }
 
-  answerAndMaybeOffer(state, answer, helpful) {
-    if (helpful) {
-      state.helpfulTurns += 1;
-    }
-
+  answerAndMaybeOffer(state, message, intent, answer) {
     if (state.leadStep !== LEAD_STEPS.NONE && state.leadStep !== LEAD_STEPS.DONE) {
       return `${answer}\n\n${this.getLeadReminder(state)}`;
     }
 
-    if (!this.shouldOfferLead(state)) {
+    if (!this.shouldOfferLead(state, message, intent)) {
       return answer;
     }
 
@@ -631,16 +608,38 @@ class Chatbot {
     state.lastOfferTurn = state.turnCount;
     state.leadStep = LEAD_STEPS.PENDING_OFFER;
 
-    return `${answer}\n\nWould you like me to connect you with one of our investment advisors?`;
+    let leadQuestion = "Would you like me to connect you with one of our investment advisors?";
+
+    if (intent === 'recommendation' || intent === 'comparison') {
+      leadQuestion = "I can also help you narrow down suitable options for your specific goals. Would you like an advisor to contact you?";
+    } else if (state.profile.amount || state.profile.mode === 'sip') {
+      const amountStr = state.profile.amount ? ` ₹${state.profile.amount.toLocaleString('en-IN')}` : '';
+      const modeStr = state.profile.mode === 'sip' ? ' SIP' : ' investment';
+      leadQuestion = `If you're planning to start a${amountStr}${modeStr}, I can help you understand which option may suit your goals. Would you like an advisor to assist you?`;
+    } else if (state.currentTopic === 'sif') {
+      leadQuestion = "If you're considering investing in a SIF, I can help you understand which option may suit your goals. Would you like an advisor to contact you?";
+    }
+
+    return `${answer}\n\n${leadQuestion}`;
   }
 
-  shouldOfferLead(state) {
+  shouldOfferLead(state, message, intent) {
     if (state.leadCaptured) return false;
     if (state.advisorOffered) return false;
     if (state.collected.phone && state.collected.email) return false;
     if (state.leadStep !== LEAD_STEPS.NONE && state.leadStep !== LEAD_STEPS.DONE) return false;
-    if (state.helpfulTurns < 1) return false;
-    return true;
+
+    if (intent === 'advisorRequest') return true;
+    if (intent === 'recommendation') return true;
+    if (intent === 'comparison') return true;
+
+    if (state.profile.amount || state.profile.goal || state.profile.horizonYears) return true;
+
+    const lowerMessage = String(message || '').toLowerCase();
+    const buyingIntent = /(want to invest|how to invest|start sip|choose a fund|help me choose|looking to invest)/.test(lowerMessage);
+    if (buyingIntent) return true;
+
+    return false;
   }
 
   handleGuide(key) {
@@ -768,7 +767,7 @@ class Chatbot {
 
     state.awaitingRecommendationDetails = false;
     const result = knowledgeService.getRecommendation(profile);
-    return this.answerAndMaybeOffer(state, formatRecommendation(result, profile), true);
+    return this.answerAndMaybeOffer(state, "recommendation", "recommendation", formatRecommendation(result, profile));
   }
 
   async handleUnknown(state, message) {
@@ -777,11 +776,6 @@ class Chatbot {
     }
 
     const localFallback = 'I can help with SIP, mutual funds, risk, tax, and more. What would you like to know?';
-
-    if (!aiClient) {
-      console.log('[FALLBACK] Gemini client not initialized.');
-      return localFallback;
-    }
 
     try {
       const systemInstruction = `You are Dhanada, a friendly, professional investment assistant for Dhanada Specialized Investment Fund.
@@ -799,212 +793,120 @@ If the user asks something completely unrelated to finance, politely steer them 
         parts: [{ text: msg.text }]
       }));
 
-      const response = await generateContentWithFallback(aiClient, {
+      const response = await generateContentWithFallback({
+        systemInstruction,
         contents,
-        config: {
-          systemInstruction: { parts: [{ text: systemInstruction }] },
-          temperature: 0.3,
-        }
-      }, 10000);
+      });
 
-      if (response && response.text && response.text.trim().length > 0) {
-        console.log('[GEMINI] Answered successfully.');
-        return this.answerAndMaybeOffer(state, response.text.trim(), true);
-      } else {
-        console.log('[FALLBACK] Gemini returned empty response.');
-        return localFallback;
-      }
+      return this.answerAndMaybeOffer(state, message, "unknown", response.text);
     } catch (error) {
-      console.log('[FALLBACK] Gemini failed:', error.message);
-      return "I'm unable to fetch that information right now. Please try again in a moment.";
+      console.error('[GEMINI ERROR]:', error.message);
+      const fallbackReply = "I'm having trouble connecting right now, but " + localFallback;
+      return this.answerAndMaybeOffer(state, message, "unknown", fallbackReply);
     }
-  }
-
-  startLeadFlow(state, prefix = '') {
-    if (!state.collected.name) {
-      state.leadStep = LEAD_STEPS.NAME;
-      return `${prefix}Awesome 😊\n\nWhat name should I tell our advisor?`;
-    }
-
-    state.leadStep = LEAD_STEPS.PHONE;
-    return `${prefix}Nice to meet you ${state.collected.name}! 😊\n\nCould you share your mobile number?`;
   }
 
   async continueLeadFlow(state, message, intent) {
-    const text = normalizeText(message);
-
-    if (state.leadStep === LEAD_STEPS.NAME) {
-      if (intent === 'affirmative') {
-        return 'Awesome 😊 What name should I tell our advisor?';
-      }
-
-      const check = leadManager.validateName(message);
-      if (!check.valid) return check.message;
-      state.collected.name = check.value;
-
-      state.leadStep = LEAD_STEPS.CHOOSE_SHARE;
-      if (!state.collected.phone && !state.collected.email) {
-        return `Nice to meet you, ${check.value}. What contact details would you like to share?`;
-      } else if (state.collected.phone && !state.collected.email) {
-        state.leadStep = LEAD_STEPS.ASK_OPTIONAL_EMAIL;
-        return `Nice to meet you, ${check.value}. Since we already have your phone number, would you also like to share your email address?`;
-      } else if (state.collected.email && !state.collected.phone) {
-        state.leadStep = LEAD_STEPS.ASK_OPTIONAL_PHONE;
-        return `Nice to meet you, ${check.value}. Since we already have your email address, would you also like to share your mobile number?`;
-      } else {
-        return await this.saveCompletedLead(state);
-      }
-    }
-
     if (state.leadStep === LEAD_STEPS.CHOOSE_SHARE) {
-      if (text.includes('both')) {
+      if (message.includes('both') || message.includes('Both')) {
         state.leadStep = LEAD_STEPS.PHONE_THEN_EMAIL_MODE_1;
-        return 'Please enter your mobile number.';
-      } else if (text.includes('email')) {
+        return 'Great! Could you share your mobile number first?';
+      } else if (message.includes('mail') || message.includes('Email')) {
         state.leadStep = LEAD_STEPS.EMAIL_ONLY;
-        return 'Please enter your email address.';
+        return 'Great! Could you share your email address?';
       } else {
         state.leadStep = LEAD_STEPS.PHONE_ONLY;
-        return 'Please enter your mobile number.';
+        return 'Great! Could you share your mobile number?';
       }
     }
 
-    if (state.leadStep === LEAD_STEPS.PHONE_ONLY) {
-      const check = leadManager.validatePhone(message);
-      if (!check.valid) return check.message;
-      state.collected.phone = check.value;
-      state.leadStep = LEAD_STEPS.ASK_OPTIONAL_EMAIL;
-      return 'Would you also like to share your email address?';
+    if (state.leadStep === LEAD_STEPS.NAME) {
+      const nameCheck = leadManager.validateName(message);
+      if (!nameCheck.valid) {
+        return `${nameCheck.message}\nMay I know your name?`;
+      }
+      state.collected.name = nameCheck.value;
+      state.leadStep = LEAD_STEPS.CHOOSE_SHARE;
+      return `Nice to meet you, ${state.collected.name}! To help our advisor connect with you, what would you like to share?`;
     }
 
-    if (state.leadStep === LEAD_STEPS.EMAIL_ONLY) {
-      const check = leadManager.validateEmail(message);
-      if (!check.valid) return check.message;
-      state.collected.email = check.value;
-      state.leadStep = LEAD_STEPS.ASK_OPTIONAL_PHONE;
-      return 'Would you also like to share your mobile number?';
-    }
-
-    if (state.leadStep === LEAD_STEPS.ASK_OPTIONAL_EMAIL) {
-      if (intent === 'affirmative') {
-        state.leadStep = LEAD_STEPS.PHONE_THEN_EMAIL_MODE_2;
-        return 'Please enter your email address.';
-      } else {
+    if (state.leadStep === LEAD_STEPS.PHONE_ONLY || state.leadStep === LEAD_STEPS.PHONE_THEN_EMAIL_MODE_1 || state.leadStep === LEAD_STEPS.PHONE_THEN_EMAIL_MODE_2 || state.leadStep === LEAD_STEPS.ASK_OPTIONAL_PHONE) {
+      if (state.leadStep === LEAD_STEPS.ASK_OPTIONAL_PHONE && (intent === 'negative' || message.toLowerCase().trim() === 'skip')) {
         return await this.saveCompletedLead(state);
       }
-    }
 
-    if (state.leadStep === LEAD_STEPS.ASK_OPTIONAL_PHONE) {
-      if (intent === 'affirmative') {
-        state.leadStep = LEAD_STEPS.PHONE_THEN_EMAIL_MODE_1; // Wait, actually we already have email. Let's just ask for phone.
-        // We can jump to PHONE_THEN_EMAIL_MODE_1 for the input step, and handle it below.
-        return 'Please enter your mobile number.';
-      } else {
-        return await this.saveCompletedLead(state);
+      const phoneCheck = leadManager.validatePhone(message);
+      if (!phoneCheck.valid) {
+        return `${phoneCheck.message}\nPlease share your 10-digit mobile number.`;
       }
-    }
+      state.collected.phone = phoneCheck.value;
 
-    if (state.leadStep === LEAD_STEPS.PHONE_THEN_EMAIL_MODE_1) {
-      const check = leadManager.validatePhone(message);
-      if (!check.valid) return check.message;
-      state.collected.phone = check.value;
-      
-      if (!state.collected.email) {
-        state.leadStep = LEAD_STEPS.PHONE_THEN_EMAIL_MODE_2;
-        return 'Thank you. Please enter your email address.';
-      } else {
-        return await this.saveCompletedLead(state);
+      if (state.leadStep === LEAD_STEPS.PHONE_THEN_EMAIL_MODE_1 || state.leadStep === LEAD_STEPS.PHONE_THEN_EMAIL_MODE_2) {
+        state.leadStep = LEAD_STEPS.ASK_OPTIONAL_EMAIL;
+        return 'Thank you. Could you also share your email address?';
       }
-    }
 
-    if (state.leadStep === LEAD_STEPS.PHONE_THEN_EMAIL_MODE_2) {
-      const check = leadManager.validateEmail(message);
-      if (!check.valid) return check.message;
-      state.collected.email = check.value;
+      if (state.leadStep === LEAD_STEPS.PHONE_ONLY && !state.collected.email) {
+        state.leadStep = LEAD_STEPS.ASK_OPTIONAL_EMAIL;
+        return 'Thank you. Would you also like to share your email address?';
+      }
+
       return await this.saveCompletedLead(state);
     }
 
-    return 'Please continue.';
-  }
-
-  async generateChatSummary(state) {
-    let chatSummary = "Customer interacted with the investment chatbot.";
-
-    if (aiClient && state.history && state.history.length > 0) {
-      try {
-        console.log("[SUMMARY] Generating CRM summary...");
-        const historyText = state.history.map(h => `${h.role}: ${h.text}`).join('\n');
-        const prompt = `Generate an internal CRM lead summary based on the following conversation history.
-
-Rules:
-* Maximum 1–2 short sentences.
-* Maximum 180 characters if possible.
-* Mention:
-    * what the user wants
-    * investment goal if known
-    * fund/SIP/tax/NAV topic if discussed
-    * whether advisor callback is expected
-* Do NOT greet.
-* Do NOT invent information.
-* Do NOT mention AI.
-* Output plain text only.
-
-Conversation History:
-${historyText}`;
-
-        const response = await generateContentWithFallback(aiClient, {
-          contents: prompt,
-        }, 5000);
-
-        if (response && response.text && response.text.trim().length > 0) {
-          chatSummary = response.text.trim();
-          console.log(`[SUMMARY] ${chatSummary}`);
-        } else {
-          console.log("[SUMMARY] Failed to generate summary: Empty response.");
-        }
-      } catch (error) {
-        console.log(`[SUMMARY] Failed to generate summary: ${error.message}`);
+    if (state.leadStep === LEAD_STEPS.EMAIL_ONLY || state.leadStep === LEAD_STEPS.ASK_OPTIONAL_EMAIL) {
+      if (state.leadStep === LEAD_STEPS.ASK_OPTIONAL_EMAIL && (intent === 'negative' || message.toLowerCase().trim() === 'skip')) {
+        return await this.saveCompletedLead(state);
       }
+
+      const emailCheck = leadManager.validateEmail(message);
+      if (!emailCheck.valid) {
+        return `${emailCheck.message}\nPlease share a valid email address.`;
+      }
+      state.collected.email = emailCheck.value;
+
+      if (state.leadStep === LEAD_STEPS.EMAIL_ONLY && !state.collected.phone) {
+        state.leadStep = LEAD_STEPS.ASK_OPTIONAL_PHONE;
+        return 'Thank you. Would you also like to share your mobile number?';
+      }
+
+      return await this.saveCompletedLead(state);
     }
-    return chatSummary;
+
+    return await this.saveCompletedLead(state);
   }
 
   async saveCompletedLead(state) {
-    console.log("[STEP 1] Lead flow completed");
-    console.log("[STEP 2] saveCompletedLead() called");
-
-    const chatSummary = await this.generateChatSummary(state);
-
-    const payload = {
-      phone: state.collected.phone,
-      name: state.collected.name || 'Website Visitor', // fallback if name not collected
-      email: state.collected.email,
-      source: 'Website Chatbot',
-      interest: state.currentTopic,
-      chat_summary: chatSummary,
-      notes: ['Lead completed from chatbot conversation'],
-    };
-    
-    const saveResult = await leadManager.saveLead(payload);
-
-    if (!saveResult.success) {
-      console.error('Lead saving failed:', saveResult.message);
-      return 'Oops! Something went wrong saving your contact info. Please try again.';
+    if (!state.collected.phone && !state.collected.email) {
+      state.leadStep = LEAD_STEPS.NONE;
+      state.advisorOffered = false;
+      return "I need either a phone number or an email to connect you with an advisor. Let me know if you change your mind.";
     }
 
-    state.leadStep = LEAD_STEPS.DONE;
     state.leadCaptured = true;
+    state.leadStep = LEAD_STEPS.DONE;
 
-    return `Awesome! 😊
+    const chatSummary = state.history
+      .map((msg) => `${msg.role.toUpperCase()}: ${msg.text}`)
+      .join('\n');
 
-Our advisor will connect with you shortly.
+    const leadData = {
+      name: state.collected.name,
+      phone: state.collected.phone,
+      email: state.collected.email,
+      interest: state.currentTopic || 'General Inquiry',
+      chat_summary: chatSummary,
+      source: 'Website Chatbot',
+    };
 
-Meanwhile, I'm always here if you have more questions.`;
+    const result = await leadManager.saveLead(leadData);
+
+    if (result.success) {
+      state.crmLeadName = result.lead_name;
+      return `Thank you, ${state.collected.name || ''}! I have passed your details to our team. An advisor will reach out to you shortly.`;
+    } else {
+      console.error('[CRM ERROR]', result.message);
+      return `Thank you! I have noted your details. An advisor will reach out to you shortly. (Internal Note: CRM saving is temporarily delayed)`;
+    }
   }
 }
-
-module.exports = {
-  Chatbot,
-  SessionStore,
-  LEAD_STEPS,
-};

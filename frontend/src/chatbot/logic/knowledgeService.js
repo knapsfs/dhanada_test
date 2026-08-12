@@ -290,7 +290,7 @@ function findCity(query) {
   return Object.keys(DISTRIBUTORS).find((city) => city !== 'default' && text.includes(city)) || 'default';
 }
 
-function getFundDetails(query) {
+export function getFundDetails(query) {
   const fund = findFund(query);
 
   if (!fund) {
@@ -309,7 +309,7 @@ function getFundDetails(query) {
   };
 }
 
-function getNAV(query) {
+export function getNAV(query) {
   const fund = findFund(query);
 
   if (!fund) {
@@ -329,7 +329,7 @@ function getNAV(query) {
   };
 }
 
-function getAMC(query) {
+export function getAMC(query) {
   const fund = findFund(query);
   const amc = findAMC(query) || (fund ? findAMC(fund.amc) : null);
 
@@ -347,7 +347,7 @@ function getAMC(query) {
   };
 }
 
-function getRisk(query) {
+export function getRisk(query) {
   const fund = findFund(query);
 
   if (fund) {
@@ -371,7 +371,7 @@ function getRisk(query) {
   };
 }
 
-function getCategory(query) {
+export function getCategory(query) {
   const fund = findFund(query);
 
   if (fund) {
@@ -400,7 +400,7 @@ function getCategory(query) {
   };
 }
 
-function getPerformance(query) {
+export function getPerformance(query) {
   const fund = findFund(query);
 
   if (!fund) {
@@ -419,7 +419,7 @@ function getPerformance(query) {
   };
 }
 
-function getMarketNews() {
+export function getMarketNews() {
   return {
     status: 'ok',
     asOf: DEMO_DATE,
@@ -428,7 +428,7 @@ function getMarketNews() {
   };
 }
 
-function getDistributor(query) {
+export function getDistributor(query) {
   const city = findCity(query);
   return {
     status: 'ok',
@@ -437,7 +437,7 @@ function getDistributor(query) {
   };
 }
 
-function getInvestmentGuide(query) {
+export function getInvestmentGuide(query) {
   const text = normalizeText(query);
 
   if (text.includes('tax')) {
@@ -491,7 +491,7 @@ function getInvestmentGuide(query) {
   };
 }
 
-function getPlatformOverview() {
+export function getPlatformOverview() {
   return {
     status: 'ok',
     summary: TOPIC_GUIDES.dhanadaServices.summary,
@@ -506,7 +506,7 @@ function getPlatformOverview() {
   };
 }
 
-function compareFunds(query) {
+export function compareFunds(query) {
   const matches = findFundMatches(query);
 
   if (matches.length < 2) {
@@ -527,7 +527,7 @@ function compareFunds(query) {
   };
 }
 
-function getRecommendation(profile = {}) {
+export function getRecommendation(profile = {}) {
   const risk = normalizeText(profile.risk);
   const goal = normalizeText(profile.goal);
   const horizonYears = Number(profile.horizonYears || 0);
@@ -574,23 +574,8 @@ function getRecommendation(profile = {}) {
   };
 }
 
-function getGuideByKey(key) {
+export function getGuideByKey(key) {
   return TOPIC_GUIDES[key] || null;
 }
 
-module.exports = {
-  getFundDetails,
-  getNAV,
-  getAMC,
-  getRisk,
-  getCategory,
-  getPerformance,
-  getMarketNews,
-  getDistributor,
-  getInvestmentGuide,
-  getPlatformOverview,
-  compareFunds,
-  getRecommendation,
-  getGuideByKey,
-  sampleFunds: FUNDS.map((fund) => fund.name),
-};
+export const sampleFunds = FUNDS.map((fund) => fund.name);

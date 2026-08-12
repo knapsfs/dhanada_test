@@ -1,12 +1,10 @@
-'use strict';
-
 const ValidationRules = {
   phone: /^[6-9]\d{9}$/,
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   name: /^[a-zA-Z][a-zA-Z\s.'-]{1,49}$/,
 };
 
-function normalizePhone(rawPhone) {
+export function normalizePhone(rawPhone) {
   if (!rawPhone) return '';
 
   let phone = String(rawPhone).trim().replace(/[\s\-()]/g, '');
@@ -22,7 +20,7 @@ function normalizePhone(rawPhone) {
   return phone;
 }
 
-function validatePhone(rawPhone) {
+export function validatePhone(rawPhone) {
   const phone = normalizePhone(rawPhone);
 
   if (!ValidationRules.phone.test(phone)) {
@@ -40,7 +38,7 @@ function validatePhone(rawPhone) {
   };
 }
 
-function validateEmail(rawEmail) {
+export function validateEmail(rawEmail) {
   const email = String(rawEmail || '').trim().toLowerCase();
 
   if (!email || !ValidationRules.email.test(email)) {
@@ -58,7 +56,7 @@ function validateEmail(rawEmail) {
   };
 }
 
-function validateName(rawName) {
+export function validateName(rawName) {
   const name = String(rawName || '').trim();
 
   if (!name || name.length < 2) {
@@ -92,7 +90,7 @@ function validateName(rawName) {
   };
 }
 
-async function saveLead({ phone, name, email, source, interest, chat_summary, notes }) {
+export async function saveLead({ phone, name, email, source, interest, chat_summary, notes }) {
   let primaryKey = null;
 
   if (phone) {
@@ -141,7 +139,25 @@ async function saveLead({ phone, name, email, source, interest, chat_summary, no
     console.log("[STEP 3] Sending payload to Frappe");
     console.log(payload);
 
-    const response = await fetch('http://127.0.0.1:8000/api/method/dhanada.api.create_chatbot_lead', {
+    let apiBaseUrl = '';
+    try {
+      const confRes = await fetch('/api/method/dhanada.api.get_chatbot_config');
+      if (confRes.ok) {
+        const confData = await confRes.json();
+        apiBaseUrl = confData.message?.api_base_url || '';
+      }
+    } catch (e) {
+      console.warn("Failed to fetch chatbot config", e);
+    }
+
+    // Remove trailing slash if any
+    if (apiBaseUrl.endsWith('/')) {
+      apiBaseUrl = apiBaseUrl.slice(0, -1);
+    }
+
+    const endpoint = `/api/method/dhanada.api.create_chatbot_lead`;
+
+    const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -159,7 +175,7 @@ async function saveLead({ phone, name, email, source, interest, chat_summary, no
 
     const data = await response.json();
     console.log(data);
-    
+
     if (data.message && data.message.success) {
       console.log(`[STEP 5] CRM Lead Created`);
       console.log(`[CRM] Lead Created: ${data.message.lead_name}`);
@@ -181,11 +197,3 @@ async function saveLead({ phone, name, email, source, interest, chat_summary, no
     };
   }
 }
-
-module.exports = {
-  saveLead,
-  validatePhone,
-  validateEmail,
-  validateName,
-  normalizePhone,
-};
